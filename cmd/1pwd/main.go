@@ -35,7 +35,8 @@ func main() {
 
 	search := app.Command("search", "Search for an entry")
 	search.Arg("extract", "Field to extract").StringVar(&extract)
-	search.Flag("type", "Entry type").Short('t').EnumVar(&typeFilter,
+	search.Flag("type", "Entry type").Short('t').Default("login").EnumVar(&typeFilter,
+		"any",
 		opvault.LoginItem.TypeString(),
 		opvault.CreditCardItem.TypeString(),
 		opvault.SecureNoteItem.TypeString(),
@@ -88,6 +89,9 @@ func openVault(vaultPath string) *opvault.Vault {
 }
 
 func doSearch(vault *opvault.Vault, query, typeFilter, extract string, jsonFormat bool) {
+	if typeFilter == "any" {
+		typeFilter = ""
+	}
 	cat := opvault.FromTypeString(typeFilter)
 
 	results := vault.All()
