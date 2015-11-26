@@ -1,0 +1,36 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"path": "github.com/alecthomas/template",
+			"revision": "b867cc6ab45cece8143cfcc6fc9c77cf3f2c23c0",
+			"revisionTime": "2015-05-30T10:01:04+10:00"
+		},
+		{
+			"path": "github.com/alecthomas/template/parse",
+			"revision": "b867cc6ab45cece8143cfcc6fc9c77cf3f2c23c0",
+			"revisionTime": "2015-05-30T10:01:04+10:00"
+		},
+		{
+			"path": "github.com/alecthomas/units",
+			"revision": "6b4e7dc5e3143b85ea77909c72caf89416fc2915",
+			"revisionTime": "2015-01-09T11:21:28+11:00"
+		},
+		{
+			"path": "github.com/bgentry/speakeasy",
+			"revision": "36e9cfdd690967f4f690c6edcc9ffacd006014a0",
+			"revisionTime": "2015-09-02T16:14:13-07:00"
+		},
+		{
+			"path": "golang.org/x/crypto/pbkdf2",
+			"revision": "c8b9e6388ef638d5a8a9d865c634befdc46a6784",
+			"revisionTime": "2015-06-18T17:47:17-07:00"
+		},
+		{
+			"path": "gopkg.in/alecthomas/kingpin.v2",
+			"revision": "72bf19f454c6822cfb2cf128c77ef8d70667df35",
+			"revisionTime": "2015-09-19T13:27:48+10:00"
+		}
+	]
+}
