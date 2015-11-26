@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"text/tabwriter"
@@ -15,12 +16,14 @@ import (
 
 func main() {
 	var (
-		id         string
-		vaultPath  string
-		extract    string
-		query      string
-		typeFilter string
-		jsonFormat bool
+		id            string
+		vaultPath     string
+		extract       string
+		query         string
+		typeFilter    string
+		coprocessType string
+		coprocessCode string
+		jsonFormat    bool
 	)
 
 	app := kingpin.New("1pwd", "A command-line tool for 1Password.").
@@ -57,13 +60,19 @@ func main() {
 		opvault.EmailItem.TypeString())
 	search.Flag("query", "Initial query").Short('q').StringVar(&query)
 	search.Flag("json", "Print JSON formatted data").Short('j').BoolVar(&jsonFormat)
+	search.Flag("coprocess", "Coprocess code").Hidden().StringVar(&coprocessCode)
+
+	coprocess := app.Command("coprocess", "iTerm coprocess").Hidden()
+	coprocess.Arg("type", "coprocess type").Default("iterm").EnumVar(&coprocessType, "iterm")
 
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 
 	case get.FullCommand():
-		doGet(openVault(vaultPath), id, extract, jsonFormat)
+		doGet(openVault(vaultPath), id, extract, "", jsonFormat)
 	case search.FullCommand():
-		doSearch(openVault(vaultPath), query, typeFilter, extract, jsonFormat)
+		doSearch(openVault(vaultPath), query, typeFilter, extract, coprocessCode, jsonFormat)
+	case coprocess.FullCommand():
+		doCoprocess(coprocessType)
 	}
 }
 
@@ -88,7 +97,7 @@ func openVault(vaultPath string) *opvault.Vault {
 	return vault
 }
 
-func doSearch(vault *opvault.Vault, query, typeFilter, extract string, jsonFormat bool) {
+func doSearch(vault *opvault.Vault, query, typeFilter, extract, coprocessCode string, jsonFormat bool) {
 	if typeFilter == "any" {
 		typeFilter = ""
 	}
@@ -135,11 +144,15 @@ func doSearch(vault *opvault.Vault, query, typeFilter, extract string, jsonForma
 	var id string
 	fmt.Fscan(&bufOut, &id)
 	if id != "" {
-		doGet(vault, id, extract, jsonFormat)
+		doGet(vault, id, extract, coprocessCode, jsonFormat)
 	}
 }
 
-func doGet(vault *opvault.Vault, id, extract string, jsonFormat bool) {
+func doGet(vault *opvault.Vault, id, extract, coprocessCode string, jsonFormat bool) {
+	if coprocessCode != "" {
+		extract = "password"
+		jsonFormat = false
+	}
 
 	item, err := vault.Get(id)
 	assert(err)
@@ -159,7 +172,21 @@ func doGet(vault *opvault.Vault, id, extract string, jsonFormat bool) {
 		}
 	}
 
-	if jsonFormat {
+	if coprocessCode != "" {
+		conn, err := net.Dial("unix", "/tmp/"+coprocessCode+".sock")
+		assert(err)
+		defer conn.Close()
+
+		var data = struct {
+			Password string
+		}{
+			Password: v.(string),
+		}
+
+		err = json.NewEncoder(conn).Encode(&data)
+		assert(err)
+
+	} else if jsonFormat {
 		err = json.NewEncoder(os.Stdout).Encode(v)
 		assert(err)
 	} else {
