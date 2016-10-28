@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/bgentry/speakeasy"
-	"github.com/fd/1pwd/pkg/opvault"
+	"github.com/mattdenner/1pwd/pkg/opvault"
 	"github.com/pquerna/otp/totp"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
