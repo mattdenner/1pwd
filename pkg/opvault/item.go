@@ -42,6 +42,14 @@ type Item struct {
 			Designation string `json:"designation,omitempty"`
 			Value       string `json:"value,omitempty"`
 		} `json:"fields,omitempty"`
+
+		// Sections
+		Sections []struct {
+			Fields []struct {
+				Name  string `json:"t,omitempty"`
+				Value string `json:"v,omitempty"`
+			}
+		} `json:"sections,omitempty"`
 	}
 }
 
@@ -153,6 +161,13 @@ func (i *Item) extractFieldByName(field string) (string, bool) {
 	for _, f := range i.Data.Fields {
 		if f.Name == field {
 			return f.Value, true
+		}
+	}
+	for _, s := range i.Data.Sections {
+		for _, f := range s.Fields {
+			if f.Name == field {
+				return f.Value, true
+			}
 		}
 	}
 

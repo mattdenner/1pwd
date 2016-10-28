@@ -6,10 +6,14 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
+	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/bgentry/speakeasy"
 	"github.com/fd/1pwd/pkg/opvault"
+	"github.com/pquerna/otp/totp"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -164,19 +168,36 @@ func doGet(vault *opvault.Vault, id, extract string, jsonFormat bool) {
 		assert(err)
 	} else {
 		if extract != "" {
-			fmt.Printf("%s\n", v)
+			fmt.Printf("%s\n", displayFieldValue(extract, v.(string)))
 		} else {
-			fmt.Printf("id:       %s\n", item.UUID)
-			if v, f := item.Extract("url"); f {
-				fmt.Printf("url:      %s\n", v)
+			tabw := tabwriter.NewWriter(os.Stdout, 10, 4, 0, ' ', 0)
+			fmt.Fprintf(tabw, "id:\t%s\n", item.UUID)
+			fields := map[string]string{"url": "url", "username": "username", "password": "password", "one-time": "One-Time Password"}
+			for n, e := range fields {
+				if v, f := item.Extract(e); f {
+					fmt.Fprintf(tabw, "%s:\t%s\n", n, displayFieldValue("url", v))
+				}
 			}
-			if v, f := item.Extract("username"); f {
-				fmt.Printf("username: %s\n", v)
-			}
-			if v, f := item.Extract("password"); f {
-				fmt.Printf("password: %s\n", v)
-			}
+			tabw.Flush()
 		}
+	}
+}
+
+func displayFieldValue(f, v string) string {
+	switch {
+	case f == "One-Time Password":
+		r, _ := regexp.Compile("[?&]secret=([^&]+)")
+		m := r.FindStringSubmatch(v)
+		var secret = strings.ToUpper(m[1]) + strings.Repeat("=", (8-(len(m[1])%8))%8)
+		var passcode, err = totp.GenerateCode(secret, time.Now().UTC())
+		if err != nil {
+			return "******"
+		} else {
+			return passcode
+		}
+
+	default:
+		return v
 	}
 }
 
