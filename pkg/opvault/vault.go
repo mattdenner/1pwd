@@ -34,13 +34,11 @@ func Open(path, master string) (*Vault, error) {
 	}
 
 	data, err = ioutil.ReadFile(filepath.Join(path, "default", "folders.js"))
-	if err != nil {
-		return nil, err
-	}
-
-	vault.folders, err = parseFolders(data)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		vault.folders, err = parseFolders(data)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	for i := '0'; i <= '9'; i++ {
