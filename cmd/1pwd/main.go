@@ -175,7 +175,7 @@ func doGet(vault *opvault.Vault, id, extract string, jsonFormat bool) {
 			fields := map[string]string{"url": "url", "username": "username", "password": "password", "one-time": "One-Time Password"}
 			for n, e := range fields {
 				if v, f := item.Extract(e); f {
-					fmt.Fprintf(tabw, "%s:\t%s\n", n, displayFieldValue("url", v))
+					fmt.Fprintf(tabw, "%s:\t%s\n", n, displayFieldValue(e, v))
 				}
 			}
 			tabw.Flush()
@@ -184,8 +184,8 @@ func doGet(vault *opvault.Vault, id, extract string, jsonFormat bool) {
 }
 
 func displayFieldValue(f, v string) string {
-	switch {
-	case f == "One-Time Password":
+	switch f {
+	case "One-Time Password":
 		r, _ := regexp.Compile("[?&]secret=([^&]+)")
 		m := r.FindStringSubmatch(v)
 		var secret = strings.ToUpper(m[1]) + strings.Repeat("=", (8-(len(m[1])%8))%8)
