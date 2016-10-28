@@ -16,7 +16,7 @@ import (
 	"syscall"
 )
 
-const sttyArg0 = "/bin/stty"
+var sttyArg0 = os.Getenv("STTY")
 
 var (
 	sttyArgvEOff = []string{"stty", "-echo"}
