@@ -16,7 +16,14 @@ import (
 	"syscall"
 )
 
-var sttyArg0 = os.Getenv("STTY")
+var sttyArg0 = (func() string {
+	sttyExecutable := os.Getenv("STTY")
+	if sttyExecutable == "" {
+		fmt.Println("You must set STTY to the location of stty executable")
+		os.Exit(1)
+	}
+	return sttyExecutable
+})()
 
 var (
 	sttyArgvEOff = []string{"stty", "-echo"}
