@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,6 +18,19 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
+type Finder func(query string, bufIn, bufOut *bytes.Buffer) error
+
+func FinderFor(name string) (Finder, error) {
+	switch name {
+	case "fzy":
+		return FindByFzy, nil
+	case "fzf":
+		return FindByFzf, nil
+	default:
+		return nil, errors.New(fmt.Sprintf("Unknown finder '%s'", name))
+	}
+}
+
 func main() {
 	var (
 		id         string
@@ -25,6 +39,7 @@ func main() {
 		query      string
 		typeFilter string
 		jsonFormat bool
+		finderName string
 	)
 
 	app := kingpin.New("1pwd", "A command-line tool for 1Password.").
@@ -61,13 +76,18 @@ func main() {
 		opvault.EmailItem.TypeString())
 	search.Flag("query", "Initial query").Short('q').StringVar(&query)
 	search.Flag("json", "Print JSON formatted data").Short('j').BoolVar(&jsonFormat)
+	search.Flag("finder", "The fuzzy finder to use").Short('f').Default("fzy").EnumVar(&finderName, "fzy", "fzf")
 
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 
 	case get.FullCommand():
 		doGet(openVault(vaultPath), id, extract, jsonFormat)
 	case search.FullCommand():
-		doSearch(openVault(vaultPath), query, typeFilter, extract, jsonFormat)
+		if finder, err := FinderFor(finderName); err != nil {
+			panic(err)
+		} else {
+			doSearch(openVault(vaultPath), finder, query, typeFilter, extract, jsonFormat)
+		}
 	}
 }
 
@@ -92,7 +112,25 @@ func openVault(vaultPath string) *opvault.Vault {
 	return vault
 }
 
-func doSearch(vault *opvault.Vault, query, typeFilter, extract string, jsonFormat bool) {
+func FindByFzy(query string, bufIn, bufOut *bytes.Buffer) error {
+	cmd := exec.Command("fzy", "--query="+query)
+	cmd.Env = os.Environ()
+	cmd.Stdin = bufIn
+	cmd.Stdout = bufOut
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func FindByFzf(query string, bufIn, bufOut *bytes.Buffer) error {
+	cmd := exec.Command("fzf", "--ansi", "--with-nth=2..", "--nth=4..,3,1", "--query="+query)
+	cmd.Env = os.Environ()
+	cmd.Stdin = bufIn
+	cmd.Stdout = bufOut
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func doSearch(vault *opvault.Vault, finder Finder, query, typeFilter, extract string, jsonFormat bool) {
 	if typeFilter == "any" {
 		typeFilter = ""
 	}
@@ -128,12 +166,7 @@ func doSearch(vault *opvault.Vault, query, typeFilter, extract string, jsonForma
 	}
 	tabw.Flush()
 
-	cmd := exec.Command("fzf", "--ansi", "--with-nth=2..", "--nth=4..,3,1", "--query="+query)
-	cmd.Env = os.Environ()
-	cmd.Stdin = &bufIn
-	cmd.Stdout = &bufOut
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	err := finder(query, &bufIn, &bufOut)
 	assert(err)
 
 	var id string
